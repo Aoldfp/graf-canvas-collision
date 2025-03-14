@@ -1,72 +1,109 @@
 const canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
-//Obtiene las dimensiones de la pantalla actual
-const window_height = window.innerHeight;
-const window_width = window.innerWidth;
-canvas.height = window_height;
-canvas.width = window_width;
-canvas.style.background = "#ff8";
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
 class Circle {
-constructor(x, y, radius, color, text, speed) {
-this.posX = x;
-this.posY = y;
-this.radius = radius;
-this.color = color;
-this.text = text;
-this.speed = speed;
-this.dx = 1 * this.speed;
-this.dy = 1 * this.speed;
+    constructor(x, y, radius, color, speedX, speedY) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.originalColor = color;
+        this.color = color;
+        this.speedX = speedX;
+        this.speedY = speedY;
+        this.enColision = false;
+        this.tiempoColision = 0;
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    move() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        // Rebote en los bordes
+        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+            this.speedX = -this.speedX;
+        }
+        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+            this.speedY = -this.speedY;
+        }
+    }
+
+    detectCollision(other) {
+        let dx = other.x - this.x;
+        let dy = other.y - this.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < this.radius + other.radius) {
+            this.enColision = true;
+            other.enColision = true;
+            this.tiempoColision = 10; // Aumentamos el tiempo de flash azul
+            other.tiempoColision = 10;
+
+            this.color = "#0000FF"; // Azul fuerte
+            other.color = "#0000FF";
+
+            // Rebote en dirección opuesta
+            let angle = Math.atan2(dy, dx);
+            let speed1 = Math.sqrt(this.speedX ** 2 + this.speedY ** 2);
+            let speed2 = Math.sqrt(other.speedX ** 2 + other.speedY ** 2);
+
+            this.speedX = -Math.cos(angle) * speed1;
+            this.speedY = -Math.sin(angle) * speed1;
+            other.speedX = Math.cos(angle) * speed2;
+            other.speedY = Math.sin(angle) * speed2;
+        }
+    }
+
+    update(circles) {
+        this.enColision = false;
+
+        this.move();
+        circles.forEach(other => {
+            if (this !== other) {
+                this.detectCollision(other);
+            }
+        });
+
+        // Flash azul visible por más tiempo
+        if (!this.enColision && this.tiempoColision > 0) {
+            this.tiempoColision--;
+            if (this.tiempoColision === 0) {
+                this.color = this.originalColor; // Volver al color original
+            }
+        }
+
+        this.draw();
+    }
 }
-draw(context) {
-context.beginPath();
-context.strokeStyle = this.color;
-context.textAlign = "center";
-context.textBaseline = "middle";
-context.font = "20px Arial";
-context.fillText(this.text, this.posX, this.posY);
-context.lineWidth = 2;
-context.arc(this.posX, this.posY, this.radius, 0, Math.PI * 2, false);
-context.stroke();
-context.closePath();
-}
-update(context) {
-this.draw(context);
-// Actualizar la posición X
-this.posX += this.dx;
-// Cambiar la dirección si el círculo llega al borde del canvas en X
-if (this.posX + this.radius > window_width || this.posX - this.radius < 0) {
-this.dx = -this.dx;
-}
-// Actualizar la posición Y
-this.posY += this.dy;
-// Cambiar la dirección si el círculo llega al borde del canvas en Y
-if (this.posY + this.radius > window_height || this.posY - this.radius < 0) {
-    this.dy = -this.dy;
-}
-}
-}
-// Crear un array para almacenar N círculos
+
+// Crear círculos con velocidades reducidas
 let circles = [];
-// Función para generar círculos aleatorios
-function generateCircles(n) {
-for (let i = 0; i < n; i++) {
-let radius = Math.random() * 30 + 20; // Radio entre 20 y 50
-let x = Math.random() * (window_width - radius * 2) + radius;
-let y = Math.random() * (window_height - radius * 2) + radius;
-let color = `#${Math.floor(Math.random()*16777215).toString(16)}`; // Color aleatorio
-let speed = Math.random() * 2 + 1; // Velocidad entre 1 y 3
-let text = `C${i + 1}`; // Etiqueta del círculo
-circles.push(new Circle(x, y, radius, color, text, speed));
+for (let i = 0; i < 10; i++) {
+    let radius = Math.random() * 20 + 20;
+    let x = Math.random() * (canvas.width - radius * 2) + radius;
+    let y = Math.random() * (canvas.height - radius * 2) + radius;
+    let speedX = (Math.random() * 1.2 + 0.3) * (Math.random() < 0.5 ? 1 : -1); // Entre 0.3 y 1.5
+    let speedY = (Math.random() * 1.2 + 0.3) * (Math.random() < 0.5 ? 1 : -1);
+    let color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+
+    circles.push(new Circle(x, y, radius, color, speedX, speedY));
 }
-}
-// Función para animar los círculos
+
+// Animación
 function animate() {
-ctx.clearRect(0, 0, window_width, window_height); // Limpiar el canvas
-circles.forEach(circle => {
-circle.update(ctx); // Actualizar cada círculo
-});
-requestAnimationFrame(animate); // Repetir la animación
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    circles.forEach(circle => circle.update(circles));
+    requestAnimationFrame(animate);
 }
-// Generar N círculos y comenzar la animación
-generateCircles(5); // Puedes cambiar el número de círculos aquí
+
 animate();
