@@ -3,11 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detección de Colisiones</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Interactividad 2D</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+            margin: 0;
+        }
+        canvas {
+            border: 2px solid white;
+        }
+    </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
     <script src="colision.js"></script>
 </body>
 </html>
